@@ -3,9 +3,16 @@
 #   1. convert comma-separated currency string to it float type
 #   2. ToDo's: debug-level controlled print
 #
-# Programmer: Al Fan@yapro.com.tw
+# Programmer: alfan-ntu
 # Date: 2020/10/4
 #
+import logging
+
+
+def initialization():
+    # set filemode='w' to simply output log of the current run
+    logging.basicConfig(filename="./log/excel_lookup.log", filemode='w', format='%(asctime)s %(levelname)s:%(message)s',
+                        datefmt='%Y/%m/%d %I:%M:%S %p', level=logging.INFO)
 
 
 def comma_separated_amount_to_float(amt_str):

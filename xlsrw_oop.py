@@ -8,6 +8,7 @@
 #
 # ToDo's:
 #   1. Add an argument parser to accept source invoice records, target general ledger file, specified invoicing date
+#   2. Add info logging feature
 #
 import xlsxwriter
 import pdb
@@ -15,6 +16,7 @@ import xlrd
 import constant
 import class_transaction
 import utility
+import logging
 
 #
 # Function: match_row(sourceRow, targetWs)
@@ -50,14 +52,15 @@ def match_row(sourceRow, targetWs):
         print(sourceRow[constant.COL_INVOICE_NO].value, " is a transaction in USD$, exchange rate:", str(ex_rate))
     return True, 20
 
+
 #
 # Claim it is a USD transaction if "註記欄" includes both "匯率" and "美金未稅"
 #
-def is_source_a_usd_transaction(sourceRow):
-    remark = sourceRow[constant.COL_INVOICE_REMARK].value
-    idxEx = remark.find(constant.EXCHANGE_RATE_LEADING_CHRS)
-    idxUsdAmt = remark.find(constant.USD_AMOUNT_CHRS)
-    if idxEx >= 0 and idxUsdAmt >= 0:
+def is_source_a_usd_transaction(source_row):
+    remark = source_row[constant.COL_INVOICE_REMARK].value
+    idx_ex = remark.find(constant.EXCHANGE_RATE_LEADING_CHRS)
+    idx_usd_amt = remark.find(constant.USD_AMOUNT_CHRS)
+    if idx_ex >= 0 and idx_usd_amt >= 0:
         return True
     else:
         return False
@@ -125,11 +128,9 @@ def is_target_account_receivable(targetRow):
     return True
 
 
-    # if constant.EXCHANGE_RATE_LEADING_CHRS in remark and constant.USD_AMOUNT_CHRS in remark:
-    #     return True
-    # else:
-    #     return False
 def main():
+    # Initialize the execution
+    utility.initialization()
     # Open source invoice details Excel file
     invoiceLoc = "./invoice_Details_20200930.xls"
     sheetName = "Sheet0"
@@ -177,13 +178,13 @@ def main():
                                                           source)
         # call the class method to display the object contents
         source_transaction.display_transaction()
-        print("-----------------------------------------------------")
+        # logging.info("----------------------------------------------------------")
         # traverse the target worksheet and identify the record correspondent to the
         # source transaction
+        match_found = False
         for jt in range(1, targetWs.nrows):
             if not is_target_account_receivable(targetWs.row(jt)):
                 continue
-
             invoice_number = targetWs.cell_value(jt, constant.COL_GL_INVOICE_NO)
             buyer_name = targetWs.cell_value(jt, constant.COL_GL_TEXT)
             invoice_date = targetWs.cell_value(jt, constant.COL_GL_INVOICE_DATE)
@@ -208,14 +209,16 @@ def main():
                                                                exchange_rate,
                                                                source)
             if source_transaction.match_transaction(target_transaction):
-                print(">>>> 找到匹配交易紀錄 <<<<<")
+                match_found = True
+                logging.info(">>>>>>>>>>>>>> 找到匹配交易紀錄 <<<<<<<<<<<<<<<")
                 target_transaction.display_transaction()
-                print("==========================================================")
-            # else:
-            #     print(">>>> 無法找到匹配交易 <<<<<")
-            #     print("==========================================================")
+                logging.info("==========================================================")
+            if match_found is False and jt == (targetWs.nrows-1):
+                logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<")
+                logging.info("==========================================================")
 
-        input("Type anything to continue")
+
+        # input("Type anything to continue")
 
 
 def generate_excel(spread_sheet):

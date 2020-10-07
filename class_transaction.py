@@ -26,27 +26,27 @@ class Transaction:
         self.source = transaction_data_source
 
     def display_transaction(self):
-        logging.info("發票號碼: %s", self.invoice_number)
-        logging.info("買方名稱: %s", self.buyer_name)
+        logging.info("\t發票號碼: %s", self.invoice_number)
+        logging.info("\t買方名稱: %s", self.buyer_name)
         if self.source == constant.DATA_SOURCE_INVOICE_DETAIL:
             date_object = datetime.strptime(self.invoice_date, "%Y/%m/%d")
         else:
             date_object = datetime.strptime(self.invoice_date, "%m/%d/%Y")
-        logging.info("發票日期: %s", date_object)
+        logging.info("\t發票日期: %s", date_object)
         if self.function_currency == constant.FUNCTION_CURRENCY_USD:
             # print("交易類型: 美金交易/交易匯率@", str(self.exchange_rate))
-            logging.info("交易類型: 美金交易/交易匯率@ %s", str(self.exchange_rate))
+            logging.info("\t交易類型: 美金交易/交易匯率@ %s", str(self.exchange_rate))
             # print("發票金額:", self.invoice_amount_NT, "of type:", type(self.invoice_amount_NT))
-            logging.info("發票金額: %s", self.invoice_amount_NT)
+            logging.info("\t發票金額: %s", self.invoice_amount_NT)
             # print("美金/台幣匯率", self.exchange_rate)
-            logging.info("美金/台幣匯率: %s", self.exchange_rate)
+            logging.info("\t美金/台幣匯率: %s", self.exchange_rate)
             # print("交易美金金額:", "%.2f" % (self.invoice_amount_NT / self.exchange_rate))
-            logging.info("交易美金金額: %s", "%.2f" % (self.invoice_amount_NT / self.exchange_rate))
+            logging.info("\t交易美金金額: %s", "%.2f" % (self.invoice_amount_NT / self.exchange_rate))
         else:
             # print("交易類型: 台幣交易")
-            logging.info("交易類型: 台幣交易")
+            logging.info("\t交易類型: 台幣交易")
             # print("發票金額:", self.invoice_amount_NT, "of type:", type(self.invoice_amount_NT))
-            logging.info("發票金額: %s", self.invoice_amount_NT)
+            logging.info("\t發票金額: %s", self.invoice_amount_NT)
 
     #
     # match_transaction() : matches the calling transaction object to the target transaction object

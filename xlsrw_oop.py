@@ -8,8 +8,9 @@
 #
 # ToDo's:
 #   1. Add an argument parser to accept source invoice records, target general ledger file, specified invoicing date
-#   2. Add info logging feature
+#   2. Mark record matching status on both source invoice records and target general ledger file
 #
+import sys
 import xlsxwriter
 import pdb
 import xlrd
@@ -17,6 +18,7 @@ import constant
 import class_transaction
 import utility
 import logging
+import class_opts
 
 #
 # Function: match_row(sourceRow, targetWs)
@@ -128,18 +130,21 @@ def is_target_account_receivable(targetRow):
     return True
 
 
-def main():
+def main(argv):
+    # process argv and opts
+    opts_args = class_opts.Opts(argv)
     # Initialize the execution
     utility.initialization()
     # Open source invoice details Excel file
-    invoiceLoc = "./invoice_Details_20200930.xls"
+    # invoiceLoc = "./invoice_Details_20200930.xls"
+    invoiceLoc = opts_args.invoice_file
     sheetName = "Sheet0"
     sourceWb = xlrd.open_workbook(invoiceLoc)
     sourceWs = sourceWb.sheet_by_name(sheetName)
-
+    # 
     # Open target general ledger Excel file
     # generalLedger = "./Voucher_Row_Analysis_20200930.xlsx"
-    generalLedger = "./Voucher_Row_Analysis.xlsx"
+    generalLedger = opts_args.ledger_file
     targetWb = xlrd.open_workbook(generalLedger)
     targetWs = targetWb.sheet_by_index(0)
     #
@@ -246,4 +251,4 @@ def get_input_file():
     return hInputFile
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[0:])

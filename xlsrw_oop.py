@@ -99,7 +99,7 @@ def is_target_a_usd_transaction(targetRow):
 
 #
 # Target records need to be further processed include
-#   1. Account Description includes constant.TARGET_ACCOUNT_IN_GL
+#   1. Account Description includes constant.TARGET_ACCOUNT_IN_GL (Accounts Receivable, actually)
 #   2. Amount > 0; Amount <= 0 means Account Receivables received
 #   3. Voucher Date is in the specified accounting period
 #   ToDo's : needs to implement specified accounting period
@@ -123,10 +123,10 @@ def is_target_account_receivable(targetRow):
         if len(amount) == 1:
             # print("Not a valid amount")
             return False
+    # amount of a record is negative when the "Account Receivable" is received
     if float(amount) < 0.0:
         # print("Account Receivable received")
         return False
-
     return True
 
 
@@ -141,7 +141,7 @@ def main(argv):
     sheetName = "Sheet0"
     sourceWb = xlrd.open_workbook(invoiceLoc)
     sourceWs = sourceWb.sheet_by_name(sheetName)
-    # 
+    #
     # Open target general ledger Excel file
     # generalLedger = "./Voucher_Row_Analysis_20200930.xlsx"
     generalLedger = opts_args.ledger_file
@@ -191,6 +191,9 @@ def main(argv):
             if not is_target_account_receivable(targetWs.row(jt)):
                 continue
             invoice_number = targetWs.cell_value(jt, constant.COL_GL_INVOICE_NO)
+            # ToDo's : the type of this voucher number is read as a floating number, which is different for
+            #          the type it is supposed to be
+            # print(invoice_number, "is of type", type(invoice_number))
             buyer_name = targetWs.cell_value(jt, constant.COL_GL_TEXT)
             invoice_date = targetWs.cell_value(jt, constant.COL_GL_INVOICE_DATE)
             invoice_amount_nt = targetWs.cell_value(jt, constant.COL_GL_AMOUNT)
@@ -218,10 +221,10 @@ def main(argv):
                 logging.info(">>>>>>>>>>>>>> 找到匹配交易紀錄 <<<<<<<<<<<<<<<")
                 target_transaction.display_transaction()
                 logging.info("==========================================================")
-            if match_found is False and jt == (targetWs.nrows-1):
-                logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<")
-                logging.info("==========================================================")
 
+        if jt == (targetWs.nrows - 1) and match_found is False:
+            logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<, targetWs.nrows-1 %s", targetWs.nrows-1)
+            logging.info("==========================================================")
 
         # input("Type anything to continue")
 
@@ -229,7 +232,6 @@ def main(argv):
 def generate_excel(spread_sheet):
     workbook = xlsxwriter.Workbook("Customs_bill_records.xlsx")
     worksheet = workbook.add_worksheet("2nd_sheet")
-
     tax_bill = ""
     customs_bill = ""
     tax_ID = ""

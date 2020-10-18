@@ -5,6 +5,7 @@
 # Created Date: 2020/10/2
 # Revision:
 #   1. 2020/10/2: 1st creation
+#   2. 2020/10/19: switch to openpyxl
 #
 # ToDo's:
 #   1. Add an argument parser to accept source invoice records, target general ledger file, specified invoicing date
@@ -221,6 +222,7 @@ def main(argv):
                 logging.info(">>>>>>>>>>>>>> 找到匹配交易紀錄 <<<<<<<<<<<<<<<")
                 target_transaction.display_transaction()
                 logging.info("==========================================================")
+
 
         if jt == (targetWs.nrows - 1) and match_found is False:
             logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<, targetWs.nrows-1 %s", targetWs.nrows-1)

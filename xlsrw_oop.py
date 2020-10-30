@@ -12,13 +12,17 @@
 #
 # Note:
 #   1. xlrd can extract data from Excel files of format, .xls or .xlsx
-#   2. xlwt can generate spreadsheet file compatible with .xls (MS Excel 97/2000/XP/200) but not .xlsx
+#   2. xlwt can generate spreadsheet file compatible with .xls (MS Excel 97/2000/XP/200) BUT NOT .xlsx
 #   3. openpyxl can read/write Excel 2010 xlsx/xlsm/xltx/xltm files, BUT NOT .xls
+#   Both xlrd/xlwt/xlutils and openpyxl packages are required to process the input
+#   invoice files and general ledger files.
 #
 import sys
 import xlsxwriter
 import pdb
 import xlrd
+from xlutils.copy import copy as xlutils_copy
+
 import constant
 import class_transaction
 import utility
@@ -144,8 +148,11 @@ def main(argv):
     # invoiceLoc = "./invoice_Details_20200930.xls"
     invoiceLoc = opts_args.invoice_file
     sheetName = "Sheet0"
-    sourceWb = xlrd.open_workbook(invoiceLoc)
+    sourceWb = xlrd.open_workbook(invoiceLoc, formatting_info=True)
     sourceWs = sourceWb.sheet_by_name(sheetName)
+    sourceWb_temp = xlutils_copy(sourceWb)
+    sourceWs_temp = sourceWb_temp.get_sheet(0)
+    print(sourceWb_temp)
     #
     # Open target general ledger Excel file
     # generalLedger = "./Voucher_Row_Analysis_20200930.xlsx"
@@ -159,9 +166,11 @@ def main(argv):
     #
     # Traverse the source invoice records
     #
+    sourceWs_temp.write(0,constant.COL_INVOICE_CHECKED, "發票配對")
     for js in range(1, sourceWs.nrows):
         invoice_status = sourceWs.cell_value(js, constant.COL_INVOICE_STATUS)
         if invoice_status == "作廢":
+            sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "作廢")
             continue
         invoice_number = sourceWs.cell_value(js, constant.COL_INVOICE_NO)
         buyer_name = sourceWs.cell_value(js, constant.COL_INVOICE_BUYER)
@@ -226,12 +235,14 @@ def main(argv):
                 logging.info(">>>>>>>>>>>>>> 找到匹配交易紀錄 <<<<<<<<<<<<<<<")
                 target_transaction.display_transaction()
                 logging.info("==========================================================")
+                sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "是")
 
         if jt == (targetWs.nrows - 1) and match_found is False:
             logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<, targetWs.nrows-1 %s", targetWs.nrows-1)
             logging.info("==========================================================")
+            sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "否")
 
-        # input("Type anything to continue")
+    sourceWb_temp.save(invoiceLoc)
 
 
 def generate_excel(spread_sheet):

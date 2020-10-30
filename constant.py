@@ -6,8 +6,12 @@ FUNCTION_CURRENCY_USD = "USD"
 FUNCTION_CURRENCY_NTD = "NTD"
 DATA_SOURCE_INVOICE_DETAIL = 0
 DATA_SOURCE_GENERAL_LEDGER = 1
+#
 # Invoice related constants
-COL_INVOICE_NO  = 0
+# Input invoice file is of .xls format, and is loaded using xlrd package, in which the way to access
+# cells is of 0-based index
+#
+COL_INVOICE_NO = 0
 COL_INVOICE_REMARK = 1
 COL_INVOICE_STATUS = 3
 COL_INVOICE_DATE = 4

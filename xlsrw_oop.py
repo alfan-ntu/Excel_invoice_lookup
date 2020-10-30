@@ -10,6 +10,11 @@
 #   1. Add an argument parser to accept source invoice records, target general ledger file, specified invoicing date
 #   2. Mark record matching status on both source invoice records and target general ledger file
 #
+# Note:
+#   1. xlrd can extract data from Excel files of format, .xls or .xlsx
+#   2. xlwt can generate spreadsheet file compatible with .xls (MS Excel 97/2000/XP/200) but not .xlsx
+#   3. openpyxl can read/write Excel 2010 xlsx/xlsm/xltx/xltm files, BUT NOT .xls
+#
 import sys
 import xlsxwriter
 import pdb

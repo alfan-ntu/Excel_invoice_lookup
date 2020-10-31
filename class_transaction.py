@@ -4,6 +4,7 @@
 from datetime import datetime
 import constant
 import logging
+import pdb
 
 
 class Transaction:
@@ -65,7 +66,13 @@ class Transaction:
             # function_currency_in_source = self.function_currency
             amount_in_source = self.invoice_amount_NT
             amount_diff_threshold = amount_in_source * constant.AMOUNT_DIFF_THRESHOLD_RATIO
-            amount_diff = target_transaction.invoice_amount_NT - amount_in_source
+            if type(target_transaction.invoice_amount_NT) is str:
+                print("target_transaction.invoice_amount_NT is of type", type(target_transaction.invoice_amount_NT))
+                print("target_transaction.invoice_amount_NT:", target_transaction.invoice_amount_NT)
+                print("target_transaction.invoice_number:", target_transaction.invoice_number)
+                amount_diff = amount_diff_threshold + 1
+            else:
+                amount_diff = target_transaction.invoice_amount_NT - amount_in_source
             if abs(amount_diff) > amount_diff_threshold:
                 return False
             return True

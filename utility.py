@@ -81,23 +81,23 @@ def is_target_account_receivable(targetRow):
     targetCell = targetRow[constant.COL_GL_ACCOUNT_DESCRIPTION]
     account = targetCell.value
     idxAccount = account.find(constant.TARGET_ACCOUNT_IN_GL)
-    amount = targetRow[constant.COL_GL_AMOUNT].value
-
     if idxAccount < 0:
-        # print("Not an Account Receivable")
+        # print("Not an Account Receivable transaction")
         return False
-    if targetRow[constant.COL_GL_AMOUNT].ctype == xlrd.XL_CELL_EMPTY or \
-            targetRow[constant.COL_GL_AMOUNT].ctype == xlrd.XL_CELL_BLANK:
-        # print("Encountering Empty Amount Cell")
+    targetCell = targetRow[constant.COL_GL_AMOUNT]
+    amount = targetCell.value
+    #
+    # IFS output empty strings or blank strings of length 1 sometimes
+    # This is a hack to resolve this kind of issue
+    #
+    if targetCell.value is None:
+        # print("Empty Account Receivable")
         return False
-    # Looks like IFS output string of length 1, for which cell is not empty,
-    # not blank, and float() fails to convert it to a floating number
-    if targetRow[constant.COL_GL_AMOUNT].ctype == xlrd.XL_CELL_TEXT:
-        if len(amount) == 1:
-            # print("Not a valid amount")
-            return False
-    # amount of a record is negative when the "Account Receivable" is received
+    if type(targetCell.value) is str:
+        # print("Invalid Account Receivable Amount")
+        return False
     if float(amount) < 0.0:
-        # print("Account Receivable received")
+        # print("Negative Account Receivable Amount")
         return False
+
     return True

@@ -22,6 +22,7 @@
 #   is .xlsx. Pandas might be a flexible and more versatile alternative.
 #
 import sys
+import openpyxl
 import xlsxwriter
 import pdb
 import xlrd
@@ -68,8 +69,6 @@ def match_row(sourceRow, targetWs):
     return True, 20
 
 
-
-
 def main(argv):
     # process argv and opts
     opts_args = class_opts.Opts(argv)
@@ -87,15 +86,16 @@ def main(argv):
     # Open target general ledger Excel file
     # generalLedger = "./Voucher_Row_Analysis_20200930.xlsx"
     generalLedger = opts_args.ledger_file
-    targetWb = xlrd.open_workbook(generalLedger)
-    targetWs = targetWb.sheet_by_index(0)
     #
-    # print(sourceWs.cell_value(0, 0))
-    # for i in range(sourceWs.ncols):
-    #     print(sourceWs.cell_value(0, i))
+    # openpyxl to read target general ledger in order to read/modify/write .xlsx files
+    #
+    targetWb = openpyxl.load_workbook(generalLedger)
+    # 0-based index, index of worksheet #1 is 0
+    targetWs_name = targetWb.sheetnames[0]
+    targetWs = targetWb[targetWs_name]
     #
     # Traverse the source invoice records
-    #
+    # pdb.set_trace()
     sourceWs_temp.write(0,constant.COL_INVOICE_CHECKED, "發票配對")
     for js in range(1, sourceWs.nrows):
         invoice_status = sourceWs.cell_value(js, constant.COL_INVOICE_STATUS)
@@ -127,31 +127,26 @@ def main(argv):
                                                           source)
         # call the class method to display the object contents
         source_transaction.display_transaction()
-        # logging.info("----------------------------------------------------------")
         # traverse the target worksheet and identify the record correspondent to the
         # source transaction
         match_found = False
-        for jt in range(1, targetWs.nrows):
-            if not utility.is_target_account_receivable(targetWs.row(jt)):
+
+        for jt in range(2, targetWs.max_row+1):
+            if not utility.is_target_account_receivable(targetWs[jt]):
                 continue
-            invoice_number = targetWs.cell_value(jt, constant.COL_GL_INVOICE_NO)
-            # ToDo's : the type of this voucher number is read as a floating number, which is different for
-            #          the type it is supposed to be
-            # print(invoice_number, "is of type", type(invoice_number))
-            buyer_name = targetWs.cell_value(jt, constant.COL_GL_TEXT)
-            invoice_date = targetWs.cell_value(jt, constant.COL_GL_INVOICE_DATE)
-            invoice_amount_nt = targetWs.cell_value(jt, constant.COL_GL_AMOUNT)
-            if utility.is_target_a_usd_transaction(targetWs.row(jt)):
+            invoice_number = targetWs.cell(row=jt, column=constant.COL_GL_INVOICE_NO+1).value
+            buyer_name = targetWs.cell(row=jt, column=constant.COL_GL_TEXT+1).value
+            invoice_date = targetWs.cell(row=jt, column=constant.COL_GL_INVOICE_DATE+1).value
+            invoice_amount_nt = targetWs.cell(row=jt, column=constant.COL_GL_AMOUNT+1).value
+            if utility.is_target_a_usd_transaction(targetWs[jt]):
                 function_currency = constant.FUNCTION_CURRENCY_USD
-                exchange_rate = targetWs.cell_value(jt, constant.COL_GL_EXCHANGE_RATE)
+                exchange_rate = targetWs.cell(row=jt, column=constant.COL_GL_EXCHANGE_RATE+1).value
                 invoice_amount_us = invoice_amount_nt / exchange_rate
             else:
                 function_currency = constant.FUNCTION_CURRENCY_NTD
                 exchange_rate = 1.0
                 invoice_amount_us = 0.0
-
             source = constant.DATA_SOURCE_GENERAL_LEDGER
-        #     construct target Transaction object
             target_transaction = class_transaction.Transaction(invoice_number,
                                                                buyer_name,
                                                                invoice_date,
@@ -167,8 +162,8 @@ def main(argv):
                 logging.info("==========================================================")
                 sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "是")
 
-        if jt == (targetWs.nrows - 1) and match_found is False:
-            logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<, targetWs.nrows-1 %s", targetWs.nrows-1)
+        if jt == targetWs.max_row and match_found is False:
+            logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<, targetWs.max_row %s", targetWs.max_row)
             logging.info("==========================================================")
             sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "否")
 

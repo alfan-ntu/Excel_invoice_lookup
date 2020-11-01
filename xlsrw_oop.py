@@ -12,6 +12,7 @@
 # ToDo's:
 #   1. Add an argument parser to accept source invoice records, target general ledger file, specified invoicing date
 #   2. Mark record matching status on both source invoice records and target general ledger file
+#   3. Show progressing when traversing the source invoice records
 #
 # Note:
 #   1. xlrd can extract data from Excel files of format, .xls or .xlsx

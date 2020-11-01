@@ -1,3 +1,12 @@
+#
+# Subject: This class processes the input arguments for executing the program
+# Coder: alfan-ntu
+# Created Date: 2020/10/2
+# Revision:
+#   1. 2020/10/2: v. 0.1 1st creation
+#   2. 2020/11/1: v. 0.2
+#           - added a new option for the external sales output file
+#
 import getopt
 import sys
 
@@ -15,17 +24,20 @@ class Opts:
         # switch: help (h, --help)
         self.invoice_file = ""
         self.ledger_file = ""
+        self.sales_file = ""
         self.begin_date = ""
         self.end_date = ""
         try:
-            opts, args = getopt.getopt(argv[1:], "hi:l:b:e:",
-                                       ["help", "invoice=", "ledger=", "begin=", "end="])
+            opts, args = getopt.getopt(argv[1:], "hi:l:b:e:o:",
+                                       ["help", "invoice=", "ledger=", "output=", "begin=", "end="])
         except getopt.GetoptError:
-            print("Syntax: \n\t", argv[0], " -i <invoice> -l <ledger> -b <start date> -e <end date>")
+            print("Syntax: \n\t", argv[0], " -i <[invoice] -l [ledger] -o <output> -b <start date> -e <end date>")
+            print("\t(-i)Invoice and (-l)Ledger are mandatory ")
             sys.exit(2)
         for opt, arg in opts:
             if opt in ("-h", "--help"):
-                print("Syntax: \n\t", argv[0], " -i <invoice> -l <ledger> -b <start date> -e <end date>")
+                print("Syntax: \n\t", argv[0], " -i [invoice] -l [ledger] -o <output> -b <start date> -e <end date>")
+                print("\t(-i)Invoice and (-l)Ledger are mandatory ")
                 sys.exit()
             elif opt in ("-i", "--invoice"):
                 self.invoice_file = arg
@@ -35,6 +47,10 @@ class Opts:
                 self.begin_date = arg
             elif opt in ("-e", "--end"):
                 self.end_date = arg
+            elif opt in ("-o", "--output"):
+                self.sales_file = arg
+        if self.sales_file == "":
+            self.sales_file = "External_Sales.xlsx"
         if self.invoice_file == "" or self.ledger_file == "":
-            print("Invoice file or ledger file is mandatory")
+            print("Invoice file and ledger file are mandatory!")
             sys.exit()

@@ -8,6 +8,8 @@
 #   2. 2020/10/30: v. 0.2
 #           - rearrange utility functions by moving some widgets to utility.py
 #           - modify Invoice Details to include a matched mark
+#   3. 2020/11/1: v. 0.3
+#           - split the Excel processing to pre-pro and record-matching
 #
 # ToDo's:
 #   1. Add an argument parser to accept source invoice records, target general ledger file, specified invoicing date
@@ -24,6 +26,8 @@
 #
 import sys
 import openpyxl
+from openpyxl.styles import Alignment
+from openpyxl.styles import Font
 import xlsxwriter
 import pdb
 import xlrd
@@ -70,30 +74,71 @@ def match_row(sourceRow, targetWs):
     return True, 20
 
 
-def main(argv):
-    # process argv and opts
-    opts_args = class_opts.Opts(argv)
-    # Initialize the execution
-    utility.initialization()
+#
+# Filter general ledger file and leave Account Receivables only in external sales in the target Excel file
+#
+def preproc_general_ledger(gl_excel, ext_sales_excel):
+    wb_src= openpyxl.load_workbook(gl_excel, read_only=True)
+    ws_name = wb_src.sheetnames[0]
+    ws_src = wb_src[ws_name]
+
+    wb_tgt = openpyxl.Workbook()
+    ws_tgt = wb_tgt.create_sheet("Sheet0", 0)
+    ws_tgt.sheet_format.defaultColWidth = 12
+    ws_tgt.column_dimensions["O"].width = 28
+    header_row = True
+    for r in ws_src.iter_rows(min_row=1, max_row=ws_src.max_row):
+        if header_row:
+            header_row = False
+            ws_tgt.append(cell.value for cell in r)
+            continue
+        # only transactions with voucher type = "F" and account description includes "Accounts Receivable"
+        # are required
+        voucher_type = r[constant.COL_GL_VOUCHER_TYPE].value
+        accnt_desc = r[constant.COL_GL_ACCOUNT_DESCRIPTION].value
+        idx_accnt_desc = accnt_desc.find(constant.TARGET_ACCOUNT_IN_GL)
+        if idx_accnt_desc > 0 and voucher_type == "F":
+            ws_tgt.append(cell.value for cell in r)
+
+    wb_src.close()
+    num_of_col = ws_tgt.max_column
+    num_of_row = ws_tgt.max_row
+    ws_tgt.auto_filter.ref = "A1:Z1"
+    # Just an experiment
+    # ws_tgt.auto_filter.add_filter_column(12, ["TW72"])
+    ws_tgt.insert_cols(4, 3)
+    ws_tgt.cell(row=1, column=4, value="統一發票號碼")
+    ws_tgt.cell(row=1, column=5, value="發票稅後\t台幣總金額\t(美金報價)")
+    ws_tgt.cell(row=1, column=6, value="配對")
+    ws_tgt.column_dimensions["D"].width = 20
+    ws_tgt.column_dimensions["E"].alignment = Alignment(wrapText=True)
+    for r in range(1, ws_tgt.max_row+1):
+        for c in range(1, ws_tgt.max_column+1):
+            ws_tgt.cell(row=r, column=c).font = Font(name="Calibri")
+    wb_tgt.save(ext_sales_excel)
+    wb_tgt.close()
+
+    return True
+
+
+#
+# match invoice details to external sales records
+#
+def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
     # Open source invoice details Excel file
-    # invoiceLoc = "./invoice_Details_20200930.xls"
-    invoiceLoc = opts_args.invoice_file
+    sourceWb = xlrd.open_workbook(invoice_excel, formatting_info=True)
     sheetName = "Sheet0"
-    sourceWb = xlrd.open_workbook(invoiceLoc, formatting_info=True)
     sourceWs = sourceWb.sheet_by_name(sheetName)
     sourceWb_temp = xlutils_copy(sourceWb)
     sourceWs_temp = sourceWb_temp.get_sheet(0)
     #
-    # Open target general ledger Excel file
-    # generalLedger = "./Voucher_Row_Analysis_20200930.xlsx"
-    generalLedger = opts_args.ledger_file
+    # openpyxl to read external sales Excel file in order to read/modify/write .xlsx files
     #
-    # openpyxl to read target general ledger in order to read/modify/write .xlsx files
-    #
-    targetWb = openpyxl.load_workbook(generalLedger)
+    # targetWb = openpyxl.load_workbook(ext_sales_excel)
+    ext_sales_wb = openpyxl.load_workbook(ext_sales_excel)
     # 0-based index, index of worksheet #1 is 0
-    targetWs_name = targetWb.sheetnames[0]
-    targetWs = targetWb[targetWs_name]
+    ext_sales_ws_name = ext_sales_wb.sheetnames[0]
+    ext_sales_ws = ext_sales_wb[ext_sales_ws_name]
     #
     # Traverse the source invoice records
     # pdb.set_trace()
@@ -116,7 +161,6 @@ def main(argv):
         else:
             function_currency = constant.FUNCTION_CURRENCY_NTD
             exchange_rate = 1.00
-
         source = constant.DATA_SOURCE_INVOICE_DETAIL
         source_transaction = class_transaction.Transaction(invoice_number,
                                                           buyer_name,
@@ -132,16 +176,17 @@ def main(argv):
         # source transaction
         match_found = False
 
-        for jt in range(2, targetWs.max_row+1):
-            if not utility.is_target_account_receivable(targetWs[jt]):
+        # for jt in range(2, targetWs.max_row+1):
+        for jt in range(2, ext_sales_ws.max_row+1):
+            if not utility.is_target_account_receivable(ext_sales_ws[jt]):
                 continue
-            invoice_number = targetWs.cell(row=jt, column=constant.COL_GL_INVOICE_NO+1).value
-            buyer_name = targetWs.cell(row=jt, column=constant.COL_GL_TEXT+1).value
-            invoice_date = targetWs.cell(row=jt, column=constant.COL_GL_INVOICE_DATE+1).value
-            invoice_amount_nt = targetWs.cell(row=jt, column=constant.COL_GL_AMOUNT+1).value
-            if utility.is_target_a_usd_transaction(targetWs[jt]):
+            invoice_number = ext_sales_ws.cell(row=jt, column=constant.COL_ES_INVOICE_NO+1).value
+            buyer_name = ext_sales_ws.cell(row=jt, column=constant.COL_ES_TEXT+1).value
+            invoice_date = ext_sales_ws.cell(row=jt, column=constant.COL_ES_INVOICE_DATE+1).value
+            invoice_amount_nt = ext_sales_ws.cell(row=jt, column=constant.COL_ES_AMOUNT+1).value
+            if utility.is_target_a_usd_transaction(ext_sales_ws[jt]):
                 function_currency = constant.FUNCTION_CURRENCY_USD
-                exchange_rate = targetWs.cell(row=jt, column=constant.COL_GL_EXCHANGE_RATE+1).value
+                exchange_rate = ext_sales_ws.cell(row=jt, column=constant.COL_ES_EXCHANGE_RATE+1).value
                 invoice_amount_us = invoice_amount_nt / exchange_rate
             else:
                 function_currency = constant.FUNCTION_CURRENCY_NTD
@@ -162,13 +207,45 @@ def main(argv):
                 target_transaction.display_transaction()
                 logging.info("==========================================================")
                 sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "是")
+                ext_sales_ws.cell(row=jt,
+                                  column=constant.COL_ES_UNIFIED_INVOICE_NO+1,
+                                  value=source_transaction.invoice_number)
+                if source_transaction.exchange_rate != 1.0:
+                    ext_sales_ws.cell(row=jt,
+                                      column=constant.COL_ES_USD_AMT+1,
+                                      value=source_transaction.invoice_amount_NT)
+                    ext_sales_ws.cell(row=jt, column=constant.COL_ES_USD_AMT+1).number_format='"$"#,##0_-'
+                ext_sales_ws.cell(row=jt,
+                                  column=constant.COL_ES_INVOICE_MATCHED+1,
+                                  value="Matched")
 
-        if jt == targetWs.max_row and match_found is False:
-            logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<, targetWs.max_row %s", targetWs.max_row)
+        if jt == ext_sales_ws.max_row and match_found is False:
+            logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<, ext_sales_ws.max_row %s", ext_sales_ws.max_row)
             logging.info("==========================================================")
             sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "否")
 
-    sourceWb_temp.save(invoiceLoc)
+    sourceWb_temp.save(invoice_excel)
+    ext_sales_wb.save(ext_sales_excel)
+
+    return True
+
+
+def main(argv):
+    # process argv and opts
+    opts_args = class_opts.Opts(argv)
+    # Initialize the execution
+    utility.initialization()
+    #
+    # Fetch target general ledger Excel file and external sales Excel file
+    #
+    invoice_details = opts_args.invoice_file
+    general_ledger = opts_args.ledger_file
+    external_sales = opts_args.sales_file
+    print("進行總帳前處理")
+    preproc_general_ledger(general_ledger, external_sales)
+    print("進行發票比對")
+    match_invoice_and_external_sales(invoice_details, external_sales)
+
 
 
 def generate_excel(spread_sheet):
@@ -189,10 +266,12 @@ def generate_excel(spread_sheet):
 
     workbook.close()
 
+
 def get_input_file():
     input_file_name = "201903.txt"
     hInputFile = open(input_file_name, "r", encoding="utf-8")
     return hInputFile
+
 
 if __name__ == "__main__":
     main(sys.argv[0:])

@@ -62,7 +62,7 @@ def is_source_a_usd_transaction(source_row):
 #
 def is_target_a_usd_transaction(targetRow):
     # pdb.set_trace()
-    currency_exchange_rate = targetRow[constant.COL_GL_EXCHANGE_RATE].value
+    currency_exchange_rate = targetRow[constant.COL_ES_EXCHANGE_RATE].value
     ex_rate = float(currency_exchange_rate)
     if ex_rate > 1.0:
         return True
@@ -78,13 +78,13 @@ def is_target_a_usd_transaction(targetRow):
 #   ToDo's : needs to implement specified accounting period
 #
 def is_target_account_receivable(targetRow):
-    targetCell = targetRow[constant.COL_GL_ACCOUNT_DESCRIPTION]
+    targetCell = targetRow[constant.COL_ES_ACCOUNT_DESCRIPTION]
     account = targetCell.value
     idxAccount = account.find(constant.TARGET_ACCOUNT_IN_GL)
     if idxAccount < 0:
         # print("Not an Account Receivable transaction")
         return False
-    targetCell = targetRow[constant.COL_GL_AMOUNT]
+    targetCell = targetRow[constant.COL_ES_AMOUNT]
     amount = targetCell.value
     #
     # IFS output empty strings or blank strings of length 1 sometimes
@@ -99,5 +99,4 @@ def is_target_account_receivable(targetRow):
     if float(amount) < 0.0:
         # print("Negative Account Receivable Amount")
         return False
-
     return True

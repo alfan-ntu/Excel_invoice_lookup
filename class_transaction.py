@@ -1,5 +1,5 @@
 #
-#
+# Widget set
 #
 from datetime import datetime
 import constant

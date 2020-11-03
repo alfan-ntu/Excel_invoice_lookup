@@ -12,9 +12,8 @@
 #           - split the Excel processing to pre-pro and record-matching
 #
 # ToDo's:
-#   1. Add an argument parser to accept source invoice records, target general ledger file, specified invoicing date
-#   2. Mark record matching status on both source invoice records and target general ledger file
-#   3. Show progressing when traversing the source invoice records
+#   1. Show progressing when traversing the source invoice records
+#   2. Add invoice date range
 #
 # Note:
 #   1. xlrd can extract data from Excel files of format, .xls or .xlsx
@@ -109,7 +108,7 @@ def preproc_general_ledger(gl_excel, ext_sales_excel):
     ws_tgt.insert_cols(4, 3)
     ws_tgt.cell(row=1, column=4, value="統一發票號碼")
     ws_tgt.cell(row=1, column=5, value="發票稅後\t台幣總金額\t(美金報價)")
-    ws_tgt.cell(row=1, column=6, value="配對")
+    ws_tgt.cell(row=1, column=6, value="比對")
     ws_tgt.column_dimensions["D"].width = 20
     ws_tgt.column_dimensions["E"].alignment = Alignment(wrapText=True)
     for r in range(1, ws_tgt.max_row+1):
@@ -137,6 +136,7 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
     # targetWb = openpyxl.load_workbook(ext_sales_excel)
     ext_sales_wb = openpyxl.load_workbook(ext_sales_excel)
     # 0-based index, index of worksheet #1 is 0
+
     ext_sales_ws_name = ext_sales_wb.sheetnames[0]
     ext_sales_ws = ext_sales_wb[ext_sales_ws_name]
     #
@@ -217,14 +217,16 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
                     ext_sales_ws.cell(row=jt, column=constant.COL_ES_USD_AMT+1).number_format='"$"#,##0_-'
                 ext_sales_ws.cell(row=jt,
                                   column=constant.COL_ES_INVOICE_MATCHED+1,
-                                  value="Matched")
+                                  value="配對")
 
         if jt == ext_sales_ws.max_row and match_found is False:
             logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<, ext_sales_ws.max_row %s", ext_sales_ws.max_row)
             logging.info("==========================================================")
             sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "否")
 
+    print("3. 原始發票資料檔比對完成，比對結果註記在 %s 的'發票配對'欄位" % invoice_excel)
     sourceWb_temp.save(invoice_excel)
+    print("4. 總帳濾出應收帳款資料，儲存於 %s" % ext_sales_excel)
     ext_sales_wb.save(ext_sales_excel)
 
     return True
@@ -241,11 +243,10 @@ def main(argv):
     invoice_details = opts_args.invoice_file
     general_ledger = opts_args.ledger_file
     external_sales = opts_args.sales_file
-    print("進行總帳前處理")
+    print("1. 進行總帳前處理")
     preproc_general_ledger(general_ledger, external_sales)
-    print("進行發票比對")
+    print("2. 進行原始發票資料檔比對")
     match_invoice_and_external_sales(invoice_details, external_sales)
-
 
 
 def generate_excel(spread_sheet):

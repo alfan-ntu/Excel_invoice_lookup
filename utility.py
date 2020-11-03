@@ -21,6 +21,7 @@ def initialization():
 #
 def comma_separated_amount_to_float(amt_str):
     amt_no_comma = ""
+    # print("Amt_str:", amt_str)
     for i in range(len(amt_str)):
         if amt_str[i] != ",":
             amt_no_comma += amt_str[i]

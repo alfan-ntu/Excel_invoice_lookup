@@ -56,9 +56,15 @@ class Transaction:
     #   2. difference between the amount in source transaction and the amount in target transaction is
     #      within 1% of the amount in the source transaction
     #   3. (optional) invoice date in source transaction is the same as that in the target transaction
+    # Note: Due to a mistake made during creating the customer profile, buyer name of 志邦精密有限公司 in
+    #       general ledger was 至邦精密有限公司. This needs a hack to resolve the conflict
+    # ToDo's: invoice date should be included in to matching criteria, because it is likely that two different
+    #         transactions to the same buyer are of the same or similar transaction amount
     #
     def match_transaction(self, target_transaction):
         buyer_in_source = self.buyer_name[0:4]
+        if buyer_in_source == "志邦精密":
+            buyer_in_source = "至邦精密"
         buyer_in_target = target_transaction.buyer_name
         if buyer_in_target.find(buyer_in_source) < 0:
             return False

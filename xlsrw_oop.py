@@ -84,6 +84,7 @@ def preproc_general_ledger(gl_excel, ext_sales_excel):
     wb_tgt = openpyxl.Workbook()
     ws_tgt = wb_tgt.create_sheet("Sheet0", 0)
     ws_tgt.sheet_format.defaultColWidth = 12
+    ws_tgt.column_dimensions["C"].width = 16
     ws_tgt.column_dimensions["O"].width = 28
     header_row = True
     for r in ws_src.iter_rows(min_row=1, max_row=ws_src.max_row):
@@ -142,6 +143,8 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
     #
     # Traverse the source invoice records
     # pdb.set_trace()
+    number_of_matched_found = 0
+
     sourceWs_temp.write(0,constant.COL_INVOICE_CHECKED, "發票配對")
     for js in range(1, sourceWs.nrows):
         invoice_status = sourceWs.cell_value(js, constant.COL_INVOICE_STATUS)
@@ -204,17 +207,23 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
             if source_transaction.match_transaction(target_transaction):
                 match_found = True
                 logging.info(">>>>>>>>>>>>>> 找到匹配交易紀錄 <<<<<<<<<<<<<<<")
+                number_of_matched_found += 1
+                logging.info("匹配交易數: %d", number_of_matched_found)
                 target_transaction.display_transaction()
                 logging.info("==========================================================")
                 sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "是")
                 ext_sales_ws.cell(row=jt,
                                   column=constant.COL_ES_UNIFIED_INVOICE_NO+1,
                                   value=source_transaction.invoice_number)
-                if source_transaction.exchange_rate != 1.0:
-                    ext_sales_ws.cell(row=jt,
-                                      column=constant.COL_ES_USD_AMT+1,
-                                      value=source_transaction.invoice_amount_NT)
-                    ext_sales_ws.cell(row=jt, column=constant.COL_ES_USD_AMT+1).number_format='"$"#,##0_-'
+                # if source_transaction.exchange_rate != 1.0:
+                #     ext_sales_ws.cell(row=jt,
+                #                       column=constant.COL_ES_UINV_AMT+1,
+                #                       value=source_transaction.invoice_amount_NT)
+                #     ext_sales_ws.cell(row=jt, column=constant.COL_ES_UINV_AMT+1).number_format='"$"#,##0_-'
+                ext_sales_ws.cell(row=jt,
+                                  column=constant.COL_ES_UINV_AMT+1,
+                                  value=source_transaction.invoice_amount_NT)
+                ext_sales_ws.cell(row=jt, column=constant.COL_ES_UINV_AMT+1).number_format='"$"#,##0_-'
                 ext_sales_ws.cell(row=jt,
                                   column=constant.COL_ES_INVOICE_MATCHED+1,
                                   value="配對")
@@ -225,6 +234,8 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
             sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "否")
 
     print("3. 原始發票資料檔比對完成，比對結果註記在 %s 的'發票配對'欄位" % invoice_excel)
+    # ToDo: add a progressing bar or rotating icon here to show the progress of this time
+    #       consuming process
     sourceWb_temp.save(invoice_excel)
     print("4. 總帳濾出應收帳款資料，儲存於 %s" % ext_sales_excel)
     ext_sales_wb.save(ext_sales_excel)

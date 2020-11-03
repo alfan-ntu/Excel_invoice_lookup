@@ -10,10 +10,11 @@
 #           - modify Invoice Details to include a matched mark
 #   3. 2020/11/1: v. 0.3
 #           - split the Excel processing to pre-pro and record-matching
+#   4. 2020/11/3: v. 0.4
+#           - progress bar displayed when traversing the source invoice details data
 #
 # ToDo's:
-#   1. Show progressing when traversing the source invoice records
-#   2. Add invoice date range
+#   1. Add invoice date range
 #
 # Note:
 #   1. xlrd can extract data from Excel files of format, .xls or .xlsx
@@ -31,12 +32,14 @@ import xlsxwriter
 import pdb
 import xlrd
 from xlutils.copy import copy as xlutils_copy
+import progressbar
 
 import constant
 import class_transaction
 import utility
 import logging
 import class_opts
+
 
 #
 # Function: match_row(sourceRow, targetWs)
@@ -146,7 +149,11 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
     number_of_matched_found = 0
 
     sourceWs_temp.write(0,constant.COL_INVOICE_CHECKED, "發票配對")
+    bar = progressbar.ProgressBar(maxval=100, widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+    bar.start()
     for js in range(1, sourceWs.nrows):
+        p = (js/sourceWs.nrows) * 100
+        bar.update(p)
         invoice_status = sourceWs.cell_value(js, constant.COL_INVOICE_STATUS)
         if invoice_status == "作廢":
             sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "作廢")
@@ -232,10 +239,8 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
             logging.info(">>>>>>>>>>>>>> 無法找到匹配交易紀錄 <<<<<<<<<<<<<<<, ext_sales_ws.max_row %s", ext_sales_ws.max_row)
             logging.info("==========================================================")
             sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "否")
-
+    bar.finish()
     print("3. 原始發票資料檔比對完成，比對結果註記在 %s 的'發票配對'欄位" % invoice_excel)
-    # ToDo: add a progressing bar or rotating icon here to show the progress of this time
-    #       consuming process
     sourceWb_temp.save(invoice_excel)
     print("4. 總帳濾出應收帳款資料，儲存於 %s" % ext_sales_excel)
     ext_sales_wb.save(ext_sales_excel)

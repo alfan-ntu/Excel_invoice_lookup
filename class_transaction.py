@@ -84,7 +84,7 @@ class Transaction:
                 amount_diff = target_transaction.invoice_amount_NT - amount_in_source
             if abs(amount_diff) > amount_diff_threshold:
                 return False
-            if abs(source_invoice_date.day - target_invoice_date.day) > 1:
+            if abs((source_invoice_date-target_invoice_date).days) > 1:
                 return False
             return True
         else:
@@ -94,10 +94,14 @@ class Transaction:
             amount_diff = target_transaction.invoice_amount_US - amount_in_source
             if abs(amount_diff) > amount_diff_threshold:
                 return False
-            if abs(source_invoice_date.day - target_invoice_date.day) > 1:
+            if abs((source_invoice_date-target_invoice_date).days) > 1:
                 return False
             return True
 
+    # Date format in Invoice_Details_yyyymmdd.xls is yyyy/mm/dd;
+    # Date format in the general ledger is m/d/yyyy; however, it has been changed to yyyy/m/d since
+    # 2020/12/01
+    # ToDo: needs to adjust the date format
     def invoice_date_object(self):
         if self.source == constant.DATA_SOURCE_INVOICE_DETAIL:
             date_object = datetime.strptime(self.invoice_date, "%Y/%m/%d")

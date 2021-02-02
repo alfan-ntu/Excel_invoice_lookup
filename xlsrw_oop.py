@@ -15,6 +15,7 @@
 #
 # ToDo's:
 #   1. Add invoice date range
+#   2. Add a GUI to this application
 #
 # Note:
 #   1. xlrd can extract data from Excel files of format, .xls or .xlsx
@@ -128,7 +129,7 @@ def preproc_general_ledger(gl_excel, ext_sales_excel):
 # match invoice details to external sales records
 #
 def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
-    # Open source invoice details Excel file
+    # Open source invoice details Excel file, which is of .xls format
     sourceWb = xlrd.open_workbook(invoice_excel, formatting_info=True)
     sheetName = "Sheet0"
     sourceWs = sourceWb.sheet_by_name(sheetName)
@@ -136,6 +137,7 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
     sourceWs_temp = sourceWb_temp.get_sheet(0)
     #
     # openpyxl to read external sales Excel file in order to read/modify/write .xlsx files
+    # External sales Excel file was created in the stage 總帳前處理
     #
     # targetWb = openpyxl.load_workbook(ext_sales_excel)
     ext_sales_wb = openpyxl.load_workbook(ext_sales_excel)
@@ -215,7 +217,7 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
                 match_found = True
                 logging.info(">>>>>>>>>>>>>> 找到匹配交易紀錄 <<<<<<<<<<<<<<<")
                 number_of_matched_found += 1
-                logging.info("匹配交易數: %d", number_of_matched_found)
+                logging.info("已匹配交易數量: %d", number_of_matched_found)
                 target_transaction.display_transaction()
                 logging.info("==========================================================")
                 sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "是")

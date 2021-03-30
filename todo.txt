@@ -1,0 +1,10 @@
+Date: 2021/3/10
+
+ToDo's
+    1. add GUI to this application. Functions of this GUI are to accept operation parameters
+       which include:
+       - invoicing records in .xls format, corresponding to the argument -i
+       - input general ledger file in .xlsx format, corresponding to the argument -l
+       - generated external sales file in .xlsx format, corresponding to the argument -o
+       - (2nd priority) beginning date of the record matching, corresponding to the argument -b
+       - (2nd priority) end date of the record matching, corresponding to the argument -e

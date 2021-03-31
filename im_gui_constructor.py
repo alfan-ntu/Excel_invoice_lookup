@@ -1,29 +1,31 @@
-# File: demopanels.py
-# References:
-#    http://hg.python.org/cpython/file/4e32c450f438/Lib/tkinter/simpledialog.py
-#    http://docs.python.org/py3k/library/inspect.html#module-inspect
 #
-# Icons sourced from:
-#    http://findicons.com/icon/69404/deletered?width=16#
-#    http://findicons.com/icon/93110/old_edit_find?width=16#
-#
-# This file is imported by the Tkinter Demos
-#
-# Author: Al Fan@yapro
+# File: im_gui_constructor.py
+# Brief: Widget sets to construct the GUI of invoice matching tool
+# Author: alfan-ntu
+# Ver.: v. 1.0a
 # Date: 2021/3/30
-# ToDo's :
-#       1) adjust log_text to vertically scroll automatically when a new message is inserted
+# Revision:
+#   1. 2021/3/30: v. 1.0a
+#               - added viewing match log
+#               - added opening match Excel file
 #
-
+# ToDo's :
+#       1) fix log message display slowly issue, probably resolved by threading
+#       2) allow user to specify match results Excel file name
+#
 from tkinter import *
 from tkinter import ttk
-from tkinter.simpledialog import Dialog
+from tkinter import messagebox
 import tkinter.font as font
 import tkinter.filedialog as fdlg
 from PIL import Image, ImageTk
 from tkcalendar import Calendar, DateEntry
 from datetime import datetime
+import os
+from os import path
+import subprocess
 import constant
+import xlsrw_oop
 
 
 # SelectorPanel class creates the upper half of the GUI, which includes
@@ -139,23 +141,32 @@ class OperationPanel(ttk.Frame):
         self.pack(side=BOTTOM, fill=X)  # resize with parent
 
         # 'Match Invoice' button
-        im = Image.open('..//images//compare.png')
+        im = Image.open('.//images//compare.png')
         imh = ImageTk.PhotoImage(im)
         matchBtn = ttk.Button(text='比對銷貨紀錄', image=imh, default=ACTIVE, command=self.match_invoice)
         matchBtn.image = imh
         # configure button style
         matchBtn['compound'] = LEFT
 
-        # 'Check Result' button
-        im = Image.open('..//images//view.png')
+        # 'View Matching Log' button
+        im = Image.open('.//images//view.png')
         imh = ImageTk.PhotoImage(im)
-        codeBtn = ttk.Button(text='檢視比對結果', image=imh, command=lambda: CodeDialog(self.master))
-        codeBtn.image = imh
-        codeBtn['compound'] = LEFT
-        codeBtn.focus()
+        viewLogBtn = ttk.Button(text='檢視比對紀錄', image=imh,
+                                command=lambda: self.examine_match_log())
+        viewLogBtn.image = imh
+        viewLogBtn['compound'] = LEFT
+        viewLogBtn.focus()
+
+        # 'Open Matching Results Excel' button
+        im = Image.open('.//images//open_file.png')
+        imh = ImageTk.PhotoImage(im)
+        openExcelBtn = ttk.Button(text='開啟比對結果', image=imh,
+                                  command=lambda xls_file="External_Sales_GUI.xlsx": self.open_match_results(xls_file))
+        openExcelBtn.image = imh
+        openExcelBtn['compound'] = LEFT
 
         # Dismiss button
-        im = Image.open('..//images//exit.png')  # image file
+        im = Image.open('.//images//exit.png')  # image file
         imh = ImageTk.PhotoImage(im)  # handle to file
         dismissBtn = ttk.Button(text='離開', image=imh, command=self.winfo_toplevel().destroy)
         dismissBtn.image = imh  # prevent image from being garbage collected
@@ -183,8 +194,9 @@ class OperationPanel(ttk.Frame):
         # self.log_text.grid(in_=self, row=2, columnspan=5, sticky=EW, padx=10, pady=5)
         log_frame.grid(in_=self, row=2, columnspan=5, sticky=EW, padx=10, pady=5)
         matchBtn.grid(in_=self, row=3, column=0, sticky=E, padx=5, pady=10)
-        codeBtn.grid(in_=self, row=3, column=1, sticky=E, padx=5, pady=10)
-        dismissBtn.grid(in_=self, row=3, column=2, sticky=E, padx=5, pady=10)
+        viewLogBtn.grid(in_=self, row=3, column=1, sticky=E, padx=5, pady=10)
+        openExcelBtn.grid(in_=self, row=3, column=2, sticky=E, padx=5, pady=10)
+        dismissBtn.grid(in_=self, row=3, column=3, sticky=E, padx=5, pady=10)
 
         # set resize constraints
         self.rowconfigure(0, weight=1)
@@ -192,11 +204,38 @@ class OperationPanel(ttk.Frame):
 
         # bind <Return> to demo window, activates 'See Code' button;
         # <'Escape'> activates 'Dismiss' button
-        self.winfo_toplevel().bind('<Return>', lambda x: codeBtn.invoke())
+        self.winfo_toplevel().bind('<Return>', lambda x: viewLogBtn.invoke())
         self.winfo_toplevel().bind('<Escape>', lambda x: dismissBtn.invoke())
+
+    # The button event handler when users click "檢視比對紀錄" button
+    def examine_match_log(self):
+        log_record_fn = constant.EXCEL_LOOKUP_LOG_FILE
+        if not(path.exists(log_record_fn)):
+            self.print_log("比對紀錄檔案尚未產生...")
+            return
+        file_log_record = open(log_record_fn, 'r')
+        lines = file_log_record.readlines()
+        self.print_log("顯示比對紀錄...")
+        for line in lines:
+            self.print_text(line)
+        self.see_text_end()
+
+    # The button event handler when users click "開啟比對結果" button
+    def open_match_results(self, target_excel):
+        if not(path.exists(target_excel)):
+            self.print_log("比對結果 Excel 文件尚未產生...")
+            return
+        self.print_log("開啟比對解果 Excel 文件")
+        if os.path.exists('C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE'):
+            subprocess.call(['C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE', target_excel])
+        elif os.path.exists('C:\\Program Files (x86)\\Microsoft Office\\root\\Office16\\EXCEL.EXE'):
+            subprocess.call(['C:\\Program Files (x86)\\Microsoft Office\\root\\Office16\\EXCEL.EXE', target_excel])
+        else:
+            messagebox.showinfo(title="統一發票與總帳比對工具", message="無法找到Excel的安裝")
 
     # The button event handler when users click "比對銷貨紀錄" button
     def match_invoice(self):
+        external_sales_fn = constant.EXTERNAL_SALES_MATCHING_FILE
         # sanity check of selected invoice records and general ledger
         inv_record_fn = self.master.sel_pnl.invoice_ent.get()
         gl_record_fn = self.master.sel_pnl.gl_ent.get()
@@ -209,7 +248,6 @@ class OperationPanel(ttk.Frame):
         self.print_log("執行發票、總帳匹配.....")
         self.print_log("發票檔案:" + inv_record_fn)
         self.print_log("總帳檔案:" + gl_record_fn)
-
         # self.master.sel_pnl.chkbtn_stt.select()
         chkbtn_stt = self.master.sel_pnl.cal_stt_chk.get()
         chkbtn_end = self.master.sel_pnl.cal_end_chk.get()
@@ -217,9 +255,20 @@ class OperationPanel(ttk.Frame):
             self.print_log("發票期始日 : " + self.master.sel_pnl.cal_stt.get())
         if chkbtn_end == 1:
             self.print_log("發票截止日 : " + self.master.sel_pnl.cal_end.get())
+        self.print_log("1. 進行總帳前處理")
+        xlsrw_oop.preproc_general_ledger(gl_record_fn, external_sales_fn)
+        self.print_log("2. 進行原始發票資料檔比對")
+        xlsrw_oop.match_invoice_and_external_sales(inv_record_fn, external_sales_fn)
 
     def print_log(self, log_msg):
         now = datetime.now()
         time_stamp = now.strftime("[%Y/%m/%d %H:%M:%S] >> ")
         self.log_text.insert(END, time_stamp + log_msg + "\n")
-        return
+        self.log_text.see(END)
+
+    def print_text(self, line):
+        self.log_text.insert(END, line)
+
+    def see_text_end(self):
+        self.log_text.see(END)
+

@@ -1,6 +1,8 @@
 #
+# File: xlsrw_oop.py
 # Subject: Compare two Excel files which include invoice information and general ledger for monthly
 #          accounting purpose
+# Brief: Entry of command line invoice matching tool
 # Coder: alfan-ntu
 # Created Date: 2020/10/2
 # Revision:
@@ -250,6 +252,9 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
     return True
 
 
+#
+# main entry of Command Line Executable
+#
 def main(argv):
     # process argv and opts
     opts_args = class_opts.Opts(argv)

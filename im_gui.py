@@ -1,10 +1,10 @@
-# File: fileseldlg.py
-#    http://infohost.nmt.edu/tcc/help/pubs/tkinter//dialogs.html#tkFileDialog
-#    http://tkinter.unpythonic.net/wiki/tkFileDialog
 #
-# Note:
-#    there are a variety of options for the FileDialog
-#    see above references for more information
+# File: im_gui.py
+# Brief: Entry of invoice matching GUI
+# Author: alfan-ntu
+# Ver.: v. 1.0a
+# Date: 2021/3/30
+#
 
 from tkinter import *
 from tkinter import ttk

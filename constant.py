@@ -1,3 +1,11 @@
+# GUI controls
+ENTRY_TYPE_INVOICE_RECORD = "invoice"
+ENTRY_TYPE_GENERAL_LEDGER = "general ledger"
+
+# Hard coded file names
+EXCEL_LOOKUP_LOG_FILE = ".//log//excel_lookup.log"
+EXTERNAL_SALES_MATCHING_FILE = "External_Sales_GUI.xlsx"
+
 # General
 LENGTH_COMPANY_NAME_CHECK = 6
 EXCHANGE_RATE_LEADING_CHRS = "匯率:"

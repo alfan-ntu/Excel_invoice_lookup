@@ -4,6 +4,12 @@
 # Author: alfan-ntu
 # Ver.: v. 1.0a
 # Date: 2021/3/30
+# ToDo's: (2021/04/03)
+#   1) 檢查 110.03月電子發票明細.xls 交易幣別 (京傳企業) 交易比對錯誤
+#   2) Add progress bar in GUI/multi-threading display and matching process
+#   3) Display match summary
+#   4) Assign match results External_Sales_GUI_yyyymm.xlsx
+#   5) Apply filter to the result Excel file; and freeze the top row of the result Excel file
 #
 
 from tkinter import *

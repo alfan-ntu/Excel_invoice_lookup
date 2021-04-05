@@ -71,6 +71,10 @@ class Transaction:
         # match transaction amount
         source_invoice_date = self.invoice_date_object()
         target_invoice_date = target_transaction.invoice_date_object()
+        # added for debug purpose - 2021/4/3
+        # if self.invoice_number == "MQ80532569":
+        #     pdb.set_trace()
+
         if self.function_currency == constant.FUNCTION_CURRENCY_NTD:
             # function_currency_in_source = self.function_currency
             amount_in_source = self.invoice_amount_NT

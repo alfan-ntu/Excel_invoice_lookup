@@ -258,7 +258,7 @@ class OperationPanel(ttk.Frame):
         self.print_log("1. 進行總帳前處理")
         xlsrw_oop.preproc_general_ledger(gl_record_fn, external_sales_fn)
         self.print_log("2. 進行原始發票資料檔比對")
-        xlsrw_oop.match_invoice_and_external_sales(inv_record_fn, external_sales_fn)
+        xlsrw_oop.match_invoice_and_external_sales(inv_record_fn, external_sales_fn, self)
 
     def print_log(self, log_msg):
         now = datetime.now()

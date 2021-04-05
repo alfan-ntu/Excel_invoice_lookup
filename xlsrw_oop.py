@@ -17,7 +17,6 @@
 #
 # ToDo's:
 #   1. Add invoice date range
-#   2. Add a GUI to this application
 #
 # Note:
 #   1. xlrd can extract data from Excel files of format, .xls or .xlsx
@@ -128,15 +127,20 @@ def preproc_general_ledger(gl_excel, ext_sales_excel):
 
 
 #
-# match invoice details to external sales records
+# match invoice details(sourceWb, source workbook) to external sales
+# records(processed General ledger)
 #
-def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
+def match_invoice_and_external_sales(invoice_excel, ext_sales_excel, GUI_caller):
     # Open source invoice details Excel file, which is of .xls format
     sourceWb = xlrd.open_workbook(invoice_excel, formatting_info=True)
     sheetName = "Sheet0"
     sourceWs = sourceWb.sheet_by_name(sheetName)
     sourceWb_temp = xlutils_copy(sourceWb)
     sourceWs_temp = sourceWb_temp.get_sheet(0)
+    # check caller type
+    if GUI_caller:
+        print("match_invoice_and_external_sales is called in GUI")
+
     #
     # openpyxl to read external sales Excel file in order to read/modify/write .xlsx files
     # External sales Excel file was created in the stage 總帳前處理
@@ -244,9 +248,15 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel):
             logging.info("==========================================================")
             sourceWs_temp.write(js, constant.COL_INVOICE_CHECKED, "否")
     bar.finish()
-    print("3. 原始發票資料檔比對完成，比對結果註記在 %s 的'發票配對'欄位" % invoice_excel)
+    if GUI_caller:
+        GUI_caller.print_log("3. 原始發票資料檔比對完成，比對結果註記在 %s 的'發票配對'欄位" % invoice_excel)
+    else:
+        print("3. 原始發票資料檔比對完成，比對結果註記在 %s 的'發票配對'欄位" % invoice_excel)
     sourceWb_temp.save(invoice_excel)
-    print("4. 總帳濾出應收帳款資料，儲存於 %s" % ext_sales_excel)
+    if GUI_caller:
+        GUI_caller.print_log("4. 總帳濾出應收帳款資料，儲存於 %s" % ext_sales_excel)
+    else:
+        print("4. 總帳濾出應收帳款資料，儲存於 %s" % ext_sales_excel)
     ext_sales_wb.save(ext_sales_excel)
 
     return True
@@ -269,7 +279,7 @@ def main(argv):
     print("1. 進行總帳前處理")
     preproc_general_ledger(general_ledger, external_sales)
     print("2. 進行原始發票資料檔比對")
-    match_invoice_and_external_sales(invoice_details, external_sales)
+    match_invoice_and_external_sales(invoice_details, external_sales, None)
 
 
 def generate_excel(spread_sheet):

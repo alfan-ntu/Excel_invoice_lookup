@@ -2,12 +2,14 @@
 # File: im_gui_constructor.py
 # Brief: Widget sets to construct the GUI of invoice matching tool
 # Author: alfan-ntu
-# Ver.: v. 1.0a
-# Date: 2021/3/30
+# Ver.: v. 1.1a
+# Date: 2021/4/6
 # Revision:
 #   1. 2021/3/30: v. 1.0a
 #               - added viewing match log
 #               - added opening match Excel file
+#   2. 2021/4/6: v. 1.1a
+#               - added threading to pipeline processing stages
 #
 # ToDo's :
 #       1) fix log message display slowly issue, probably resolved by threading
@@ -22,7 +24,9 @@ from PIL import Image, ImageTk
 from tkcalendar import Calendar, DateEntry
 from datetime import datetime
 import os
+import time
 from os import path
+import threading
 import subprocess
 import constant
 import xlsrw_oop
@@ -143,7 +147,10 @@ class OperationPanel(ttk.Frame):
         # 'Match Invoice' button
         im = Image.open('.//images//compare.png')
         imh = ImageTk.PhotoImage(im)
-        matchBtn = ttk.Button(text='比對銷貨紀錄', image=imh, default=ACTIVE, command=self.match_invoice)
+        # matchBtn = ttk.Button(text='比對銷貨紀錄', image=imh, default=ACTIVE,
+        #                       command=self.match_invoice)
+        matchBtn = ttk.Button(text='比對銷貨紀錄', image=imh, default=ACTIVE,
+                              command=self.match_invoice_threading)
         matchBtn.image = imh
         # configure button style
         matchBtn['compound'] = LEFT
@@ -168,7 +175,9 @@ class OperationPanel(ttk.Frame):
         # Dismiss button
         im = Image.open('.//images//exit.png')  # image file
         imh = ImageTk.PhotoImage(im)  # handle to file
-        dismissBtn = ttk.Button(text='離開', image=imh, command=self.winfo_toplevel().destroy)
+        dismissBtn = ttk.Button(text='離開', image=imh,
+                                command=self.winfo_toplevel().destroy)
+        # dismissBtn = ttk.Button(text='離開', image=imh, command=self.exit_button)
         dismissBtn.image = imh  # prevent image from being garbage collected
         dismissBtn['compound'] = LEFT  # display image to left of label text
 
@@ -207,6 +216,12 @@ class OperationPanel(ttk.Frame):
         self.winfo_toplevel().bind('<Return>', lambda x: viewLogBtn.invoke())
         self.winfo_toplevel().bind('<Escape>', lambda x: dismissBtn.invoke())
 
+        # thread handling relevant attributes
+        self.gl_prep_done_ev = threading.Event()
+        self.im_done_ev = threading.Event()
+        self.gl_prep_done_ev.clear()
+        self.im_done_ev.clear()
+
     # The button event handler when users click "檢視比對紀錄" button
     def examine_match_log(self):
         log_record_fn = constant.EXCEL_LOOKUP_LOG_FILE
@@ -234,7 +249,7 @@ class OperationPanel(ttk.Frame):
             messagebox.showinfo(title="統一發票與總帳比對工具", message="無法找到Excel的安裝")
 
     # The button event handler when users click "比對銷貨紀錄" button
-    def match_invoice(self):
+    def match_invoice_threading(self):
         external_sales_fn = constant.EXTERNAL_SALES_MATCHING_FILE
         # sanity check of selected invoice records and general ledger
         inv_record_fn = self.master.sel_pnl.invoice_ent.get()
@@ -256,9 +271,27 @@ class OperationPanel(ttk.Frame):
         if chkbtn_end == 1:
             self.print_log("發票截止日 : " + self.master.sel_pnl.cal_end.get())
         self.print_log("1. 進行總帳前處理")
-        xlsrw_oop.preproc_general_ledger(gl_record_fn, external_sales_fn)
-        self.print_log("2. 進行原始發票資料檔比對")
-        xlsrw_oop.match_invoice_and_external_sales(inv_record_fn, external_sales_fn, self)
+        t1 = threading.Thread(target=xlsrw_oop.preproc_general_ledger,
+                              name="Gl_preprocessor",
+                              args=(self.master.sel_pnl.gl_ent.get(),
+                                    constant.EXTERNAL_SALES_MATCHING_FILE,
+                                    self))
+        t2 = threading.Thread(target=xlsrw_oop.match_invoice_and_external_sales,
+                              name="Invoice_matching_processor",
+                              args=(self.master.sel_pnl.invoice_ent.get(),
+                                    constant.EXTERNAL_SALES_MATCHING_FILE,
+                                    self))
+        tlogging = threading.Thread(target=self.pipeline_thread,
+                                    name="pipeliner",
+                                    args=(t2,))
+        tlogging.start()
+        t1.start()
+
+    def pipeline_thread(self, t2):
+        while not self.gl_prep_done_ev.isSet():
+            self.gl_prep_done_ev.wait()
+            self.print_log("2. 進行原始發票資料檔比對")
+            t2.start()
 
     def print_log(self, log_msg):
         now = datetime.now()

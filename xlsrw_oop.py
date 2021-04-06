@@ -14,6 +14,8 @@
 #           - split the Excel processing to pre-pro and record-matching
 #   4. 2020/11/3: v. 0.4
 #           - progress bar displayed when traversing the source invoice details data
+#   5. 2021/4/6: v. 1.1
+#           - support both CLI and GUI
 #
 # ToDo's:
 #   1. Add invoice date range
@@ -27,6 +29,7 @@
 #   is .xlsx. Pandas might be a flexible and more versatile alternative.
 #
 import sys
+import time
 import openpyxl
 from openpyxl.styles import Alignment
 from openpyxl.styles import Font
@@ -81,7 +84,12 @@ def match_row(sourceRow, targetWs):
 #
 # Filter general ledger file and leave Account Receivables only in external sales in the target Excel file
 #
-def preproc_general_ledger(gl_excel, ext_sales_excel):
+def preproc_general_ledger(gl_excel, ext_sales_excel, GUI_caller):
+    # check caller type
+    # pdb.set_trace()
+    if GUI_caller:
+        print("preproc_general_ledger is called from GUI")
+        print("General ledger " + gl_excel)
     wb_src= openpyxl.load_workbook(gl_excel, read_only=True)
     ws_name = wb_src.sheetnames[0]
     ws_src = wb_src[ws_name]
@@ -122,6 +130,9 @@ def preproc_general_ledger(gl_excel, ext_sales_excel):
             ws_tgt.cell(row=r, column=c).font = Font(name="Calibri")
     wb_tgt.save(ext_sales_excel)
     wb_tgt.close()
+    # Notify GUI that general ledger pre-process is done
+    if GUI_caller:
+        GUI_caller.gl_prep_done_ev.set()
 
     return True
 
@@ -139,7 +150,7 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel, GUI_caller)
     sourceWs_temp = sourceWb_temp.get_sheet(0)
     # check caller type
     if GUI_caller:
-        print("match_invoice_and_external_sales is called in GUI")
+        print("match_invoice_and_external_sales is called from GUI")
 
     #
     # openpyxl to read external sales Excel file in order to read/modify/write .xlsx files
@@ -258,7 +269,6 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel, GUI_caller)
     else:
         print("4. 總帳濾出應收帳款資料，儲存於 %s" % ext_sales_excel)
     ext_sales_wb.save(ext_sales_excel)
-
     return True
 
 
@@ -277,7 +287,7 @@ def main(argv):
     general_ledger = opts_args.ledger_file
     external_sales = opts_args.sales_file
     print("1. 進行總帳前處理")
-    preproc_general_ledger(general_ledger, external_sales)
+    preproc_general_ledger(general_ledger, external_sales, None)
     print("2. 進行原始發票資料檔比對")
     match_invoice_and_external_sales(invoice_details, external_sales, None)
 

@@ -36,8 +36,12 @@ class Opts:
             sys.exit(2)
         for opt, arg in opts:
             if opt in ("-h", "--help"):
-                print("Syntax: \n\t", argv[0], " -i [invoice] -l [ledger] -o <output> -b <start date> -e <end date>")
-                print("\t(-i)Invoice and (-l)Ledger are mandatory ")
+                print("Syntax: \n", argv[0], " -i [invoice] -l [ledger] -o <output> -b <start date> -e <end date>")
+                print("\t\t-i: Invoice file name <mandatory>")
+                print("\t\t-l: General ledger file name <mandatory>")
+                print("\t\t-b: Begin invoicing date: yyyymmdd <optional>")
+                print("\t\t-e: End invoicing date: yyyymmdd <optional>")
+                print("\t\t-h: Print this help menu")
                 sys.exit()
             elif opt in ("-i", "--invoice"):
                 self.invoice_file = arg

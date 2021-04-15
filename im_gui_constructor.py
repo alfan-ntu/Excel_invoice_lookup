@@ -12,8 +12,7 @@
 #               - added threading to pipeline processing stages
 #
 # ToDo's :
-#       1) fix log message display slowly issue, probably resolved by threading
-#       2) allow user to specify match results Excel file name
+#       1) allow user to specify match results Excel file name
 #
 from tkinter import *
 from tkinter import ttk

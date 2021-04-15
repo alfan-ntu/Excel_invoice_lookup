@@ -7,7 +7,6 @@
 # ToDo's: (2021/4/6)
 #   1) Display match summary
 #   2) Assign match results External_Sales_GUI_yyyymm.xlsx
-#   3) Apply filter to the result Excel file; and freeze the top row of the result Excel file
 #
 
 from tkinter import *

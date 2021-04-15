@@ -18,7 +18,8 @@
 #           - support both CLI and GUI
 #
 # ToDo's:
-#   1. Add invoice date range
+#   1) Add invoice date range
+#   2) Apply filter to the result Excel file; and freeze the top row of the result Excel file
 #
 # Note:
 #   1. xlrd can extract data from Excel files of format, .xls or .xlsx

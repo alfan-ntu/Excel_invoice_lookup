@@ -290,28 +290,10 @@ def main(argv):
     #
     # fetch invoice duration information
     #
-    correct_date = None
     if opts_args.begin_date != "":
-        # print("Invoicing beginning date: ", opts_args.begin_date)
-        try:
-            start_date_obj = datetime.strptime(opts_args.begin_date, "%Y%m%d")
-            print(start_date_obj.strftime("Starting date: %Y/%m/%d"))
-            correct_date = True
-        except ValueError:
-            print("Error in beginning invoicing date!")
-            correct_date = False
-            sys.exit(3)
-    correct_date = None
+        print("對帳起始日期: ", opts_args.begin_date.strftime("%Y/%m/%d"))
     if opts_args.end_date != "":
-        # print("Invoicing end date: ", opts_args.end_date)
-        try:
-            end_date_obj = datetime.strptime(opts_args.end_date, "%Y%m%d")
-            print(end_date_obj.strftime("End date: %Y/%m/%d"))
-            correct_date = True
-        except ValueError:
-            print("Error in end invoicing date!")
-            correct_date = False
-            sys.exit(3)
+        print("對帳截止日期: ", opts_args.end_date.strftime("%Y/%m/%d"))
 
     print("1. 進行總帳前處理")
     preproc_general_ledger(general_ledger, external_sales, None)

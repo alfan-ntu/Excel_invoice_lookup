@@ -9,6 +9,7 @@
 #
 import getopt
 import sys
+from datetime import datetime
 
 
 class Opts:
@@ -31,17 +32,12 @@ class Opts:
             opts, args = getopt.getopt(argv[1:], "hi:l:b:e:o:",
                                        ["help", "invoice=", "ledger=", "output=", "begin=", "end="])
         except getopt.GetoptError:
-            print("Syntax: \n\t", argv[0], " -i <[invoice] -l [ledger] -o <output> -b <start date> -e <end date>")
-            print("\t(-i)Invoice and (-l)Ledger are mandatory ")
-            sys.exit(2)
+            print("Invalid command syntax...")
+            print_help_message(argv[0])
+            sys.exit()
         for opt, arg in opts:
             if opt in ("-h", "--help"):
-                print("Syntax: \n", argv[0], " -i [invoice] -l [ledger] -o <output> -b <start date> -e <end date>")
-                print("\t\t-i: Invoice file name <mandatory>")
-                print("\t\t-l: General ledger file name <mandatory>")
-                print("\t\t-b: Begin invoicing date: yyyymmdd <optional>")
-                print("\t\t-e: End invoicing date: yyyymmdd <optional>")
-                print("\t\t-h: Print this help menu")
+                print_help_message(argv[0])
                 sys.exit()
             elif opt in ("-i", "--invoice"):
                 self.invoice_file = arg
@@ -55,6 +51,41 @@ class Opts:
                 self.sales_file = arg
         if self.sales_file == "":
             self.sales_file = "External_Sales.xlsx"
-        if self.invoice_file == "" or self.ledger_file == "":
-            print("Invoice file and ledger file are mandatory!")
+        self.date_sanity_check()
+
+    def date_sanity_check(self):
+        if self.begin_date == "" and self.end_date == "":
+            return True
+        if self.begin_date != "":
+            try:
+                self.begin_date = datetime.strptime(self.begin_date, "%Y%m%d")
+                print(self.begin_date.strftime("Starting date: %Y/%m/%d"))
+            except ValueError:
+                print("Wrong starting date format")
+                sys.exit()
+        if self.end_date != "":
+            try:
+                self.end_date = datetime.strptime(self.end_date, "%Y%m%d")
+                print(self.end_date.strftime("End date: %Y/%m/%d"))
+            except ValueError:
+                print("Wrong end date format")
+                sys.exit()
+        if self.begin_date != "" and self.end_date == "":
+            self.end_date = datetime.today()
+            print("End date is set to ", self.end_date.strftime("%Y/%m/%d"))
+        if self.end_date != "" and self.begin_date == "":
+            self.begin_date = datetime(2000, 1, 1)
+            print("Beginning date is set to ", self.begin_date.strftime("%Y/%m/%d"))
+        if self.end_date < self.begin_date:
+            print("End date is earlier than starting date....")
             sys.exit()
+        return True
+
+
+def print_help_message(command):
+    print("Syntax: ", command, " -i [invoice] -l [ledger] -o <output> -b <start date> -e <end date>")
+    print("\t-i (--invoice): Invoice file name <mandatory>")
+    print("\t-l (--ledger): General ledger file name <mandatory>")
+    print("\t-b (--begin): Beginning invoicing date: yyyymmdd <optional>")
+    print("\t-e (--end): End invoicing date: yyyymmdd <optional>")
+    print("\t-h (--help): Print this help menu")

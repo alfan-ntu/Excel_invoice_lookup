@@ -196,7 +196,7 @@ class OperationPanel(ttk.Frame):
         self.log_text.pack(side=RIGHT, expand=1, fill=BOTH)
         y_scrollbar.config(command=self.log_text.yview)
 
-        # position and register widgets as children of this frame
+        # place and register widgets as children of this frame
         sep.grid(in_=self, row=0, columnspan=5, sticky=EW, pady=10)
         log_label.grid(in_=self, row=1, columnspan=5, sticky=N, pady=5)
         # self.log_text.grid(in_=self, row=2, columnspan=5, sticky=EW, padx=10, pady=5)
@@ -263,17 +263,35 @@ class OperationPanel(ttk.Frame):
         self.print_log("發票檔案:" + inv_record_fn)
         self.print_log("總帳檔案:" + gl_record_fn)
         # self.master.sel_pnl.chkbtn_stt.select()
+        # ToDo's : probably need to combine date check buttons into one
         chkbtn_stt = self.master.sel_pnl.cal_stt_chk.get()
         chkbtn_end = self.master.sel_pnl.cal_end_chk.get()
         if chkbtn_stt == 1:
-            self.print_log("發票期始日 : " + self.master.sel_pnl.cal_stt.get())
+            cal_start_date = self.master.sel_pnl.cal_stt.get()
+            cal_start_date_obj = datetime.strptime(cal_start_date, "%Y/%m/%d")
+            print("Type of start date: ", type(cal_start_date_obj),
+                  " Start date: ", cal_start_date_obj.strftime("%Y/%m/%d"))
+            self.print_log("發票起始日 : " + cal_start_date)
+        else:
+            cal_start_date = ""
+            cal_start_date_obj = ""
+
         if chkbtn_end == 1:
-            self.print_log("發票截止日 : " + self.master.sel_pnl.cal_end.get())
+            cal_end_date = self.master.sel_pnl.cal_end.get()
+            cal_end_date_obj = datetime.strptime(cal_end_date, "%Y/%m/%d")
+            print("Type of end date: ", type(cal_end_date_obj),
+                  " End date: ", cal_end_date_obj.strftime("%Y/%m/%d"))
+            self.print_log("發票截止日 : " + cal_end_date)
+        else:
+            cal_end_date = ""
+            cal_end_date_obj = ""
         self.print_log("1. 進行總帳前處理")
-        t1 = threading.Thread(target=xlsrw_oop.preproc_general_ledger,
+        t1 = threading.Thread(target=xlsrw_oop.preproc_general_ledger_with_date,
                               name="Gl_preprocessor",
                               args=(self.master.sel_pnl.gl_ent.get(),
                                     constant.EXTERNAL_SALES_MATCHING_FILE,
+                                    cal_start_date_obj,
+                                    cal_end_date_obj,
                                     self))
         t2 = threading.Thread(target=xlsrw_oop.match_invoice_and_external_sales,
                               name="Invoice_matching_processor",

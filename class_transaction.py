@@ -102,10 +102,6 @@ class Transaction:
                 return False
             return True
 
-    # Date format in Invoice_Details_yyyymmdd.xls is yyyy/mm/dd;
-    # Date format in the general ledger is m/d/yyyy; however, it has been changed to yyyy/m/d since
-    # 2020/12/01
-    # ToDo: needs to adjust the date format
     def invoice_date_object(self):
         if self.source == constant.DATA_SOURCE_INVOICE_DETAIL:
             date_object = datetime.strptime(self.invoice_date, "%Y/%m/%d")

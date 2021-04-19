@@ -59,14 +59,12 @@ class Opts:
         if self.begin_date != "":
             try:
                 self.begin_date = datetime.strptime(self.begin_date, "%Y%m%d")
-                print(self.begin_date.strftime("Starting date: %Y/%m/%d"))
             except ValueError:
                 print("Wrong starting date format")
                 sys.exit()
         if self.end_date != "":
             try:
                 self.end_date = datetime.strptime(self.end_date, "%Y%m%d")
-                print(self.end_date.strftime("End date: %Y/%m/%d"))
             except ValueError:
                 print("Wrong end date format")
                 sys.exit()

@@ -76,7 +76,7 @@ def is_target_a_usd_transaction(targetRow):
 #   1. Account Description includes constant.TARGET_ACCOUNT_IN_GL (Accounts Receivable, actually)
 #   2. Amount > 0; Amount <= 0 means Account Receivables received
 #   3. Voucher Date is in the specified accounting period
-#   ToDo's : needs to implement specified accounting period
+#   ToDo's : needs to implement specified accounting period; CLI done, GUI's date validation yet
 #
 def is_target_account_receivable(targetRow):
     targetCell = targetRow[constant.COL_ES_ACCOUNT_DESCRIPTION]

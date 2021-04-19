@@ -18,7 +18,7 @@
 #           - support both CLI and GUI
 #
 # ToDo's:
-#   1) Add invoice date range
+#   1) Add invoice date range; CLI done, GUI's date validation needs to be implemented
 #   2) Apply filter to the result Excel file; and freeze the top row of the result Excel file
 #
 # Note:
@@ -83,25 +83,34 @@ def match_row(sourceRow, targetWs):
 
 
 #
-# Filter general ledger file and leave Account Receivables only in external sales in the target Excel file
+# Filter general ledger file and leave Account Receivables only in external sales in the
+# target Excel file
 #
-def preproc_general_ledger(gl_excel, ext_sales_excel, GUI_caller):
-    # check caller type
-    # pdb.set_trace()
+def preproc_general_ledger_with_date(gl_excel, ext_sales_excel, start_date, end_date, GUI_caller):
     if GUI_caller:
         print("preproc_general_ledger is called from GUI")
-        print("General ledger " + gl_excel)
-    wb_src= openpyxl.load_workbook(gl_excel, read_only=True)
+        print("\tGeneral ledger selected: " + gl_excel)
+        print("\tStart date: ", start_date)
+        print("\tEnd date: ", end_date)
+    wb_src= openpyxl.load_workbook(gl_excel, read_only=True)    # open source general ledger workbook
     ws_name = wb_src.sheetnames[0]
     ws_src = wb_src[ws_name]
-
-    wb_tgt = openpyxl.Workbook()
+    wb_tgt = openpyxl.Workbook()                                # prepare target external sales Excel workbook
     ws_tgt = wb_tgt.create_sheet("Sheet0", 0)
     ws_tgt.sheet_format.defaultColWidth = 12
     ws_tgt.column_dimensions["C"].width = 16
     ws_tgt.column_dimensions["O"].width = 28
+    if start_date != "" or end_date != "":
+        check_invoice_date = True
+    else:
+        check_invoice_date = False
     header_row = True
+    bar = progressbar.ProgressBar(maxval=100, widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+    bar.start()
+    cur_row = 1
     for r in ws_src.iter_rows(min_row=1, max_row=ws_src.max_row):
+        p = (cur_row/ws_src.max_row) * 100
+        bar.update(p)
         if header_row:
             header_row = False
             ws_tgt.append(cell.value for cell in r)
@@ -109,17 +118,24 @@ def preproc_general_ledger(gl_excel, ext_sales_excel, GUI_caller):
         # only transactions with voucher type = "F" and account description includes "Accounts Receivable"
         # are required
         voucher_type = r[constant.COL_GL_VOUCHER_TYPE].value
+        voucher_date = r[constant.COL_GL_INVOICE_DATE].value
         accnt_desc = r[constant.COL_GL_ACCOUNT_DESCRIPTION].value
         idx_accnt_desc = accnt_desc.find(constant.TARGET_ACCOUNT_IN_GL)
         if idx_accnt_desc > 0 and voucher_type == "F":
-            ws_tgt.append(cell.value for cell in r)
+            if check_invoice_date:
+                # compose voucher date object according to voucher_date string
+                voucher_date_obj = datetime.strptime(voucher_date, "%m/%d/%Y")
+                if (voucher_date_obj >= start_date) and (voucher_date_obj <= end_date):
+                    ws_tgt.append(cell.value for cell in r)
+            else:
+                ws_tgt.append(cell.value for cell in r)
+        cur_row = cur_row + 1
 
+    bar.finish()
     wb_src.close()
     num_of_col = ws_tgt.max_column
     num_of_row = ws_tgt.max_row
     ws_tgt.auto_filter.ref = "A1:Z1"
-    # Just an experiment
-    # ws_tgt.auto_filter.add_filter_column(12, ["TW72"])
     ws_tgt.insert_cols(4, 3)
     ws_tgt.cell(row=1, column=4, value="統一發票號碼")
     ws_tgt.cell(row=1, column=5, value="發票稅後\t台幣總金額\t(美金報價)")
@@ -152,7 +168,6 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel, GUI_caller)
     # check caller type
     if GUI_caller:
         print("match_invoice_and_external_sales is called from GUI")
-
     #
     # openpyxl to read external sales Excel file in order to read/modify/write .xlsx files
     # External sales Excel file was created in the stage 總帳前處理
@@ -160,7 +175,6 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel, GUI_caller)
     # targetWb = openpyxl.load_workbook(ext_sales_excel)
     ext_sales_wb = openpyxl.load_workbook(ext_sales_excel)
     # 0-based index, index of worksheet #1 is 0
-
     ext_sales_ws_name = ext_sales_wb.sheetnames[0]
     ext_sales_ws = ext_sales_wb[ext_sales_ws_name]
     #
@@ -282,21 +296,22 @@ def main(argv):
     # Initialize the execution
     utility.initialization()
     #
-    # Fetch target general ledger Excel file and external sales Excel file
+    # Fetch target general ledger Excel file, external sales Excel file and invoice duration
     #
     invoice_details = opts_args.invoice_file
     general_ledger = opts_args.ledger_file
     external_sales = opts_args.sales_file
-    #
-    # fetch invoice duration information
-    #
-    if opts_args.begin_date != "":
-        print("對帳起始日期: ", opts_args.begin_date.strftime("%Y/%m/%d"))
-    if opts_args.end_date != "":
-        print("對帳截止日期: ", opts_args.end_date.strftime("%Y/%m/%d"))
+
+    invoice_start_date = opts_args.begin_date
+    invoice_end_date = opts_args.end_date
+    if invoice_start_date != "":
+        print("對帳起始日期: ", invoice_start_date.strftime("%Y/%m/%d"))
+    if invoice_end_date != "":
+        print("對帳截止日期: ", invoice_end_date.strftime("%Y/%m/%d"))
 
     print("1. 進行總帳前處理")
-    preproc_general_ledger(general_ledger, external_sales, None)
+    # preproc_general_ledger(general_ledger, external_sales, None)
+    preproc_general_ledger_with_date(general_ledger, external_sales, invoice_start_date, invoice_end_date, None)
     print("2. 進行原始發票資料檔比對")
     match_invoice_and_external_sales(invoice_details, external_sales, None)
 

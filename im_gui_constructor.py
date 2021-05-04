@@ -21,7 +21,7 @@ import tkinter.font as font
 import tkinter.filedialog as fdlg
 from PIL import Image, ImageTk
 from tkcalendar import Calendar, DateEntry
-from datetime import datetime
+from datetime import datetime, date
 import os
 import time
 from os import path
@@ -84,29 +84,30 @@ class SelectorPanel(ttk.Frame):
     # start date and end date
     def _fill_bottom_frame(self):
         frame = ttk.Frame(self)
-        # lbl_stt = ttk.Label(frame, width=15, text="發票起始時間")
-        # lbl_stt.pack(side=LEFT)
-        self.cal_stt_chk = IntVar()
-        self.chkbtn_stt = Checkbutton(frame, text="發票起始日期", variable=self.cal_stt_chk, width=15,
-                                      onvalue=1, offvalue=0)
-        self.chkbtn_stt.pack(side=LEFT, padx=5)
-        self.cal_stt = DateEntry(frame, width=25, background="darkblue",
-                                 date_pattern="yyyy/MM/dd",
-                                 foreground="white", borderwidth=2, year=2020)
-        # self.cal_stt.delete(0, "end")
-        self.cal_stt.pack(side=LEFT, padx=10)
 
-        # lbl_end = ttk.Label(frame, width=15, text="發票結束時間")
-        # lbl_end.pack(side=LEFT)
-        self.cal_end_chk = IntVar()
-        self.chkbtn_end = Checkbutton(frame, text="發票結束日期", variable=self.cal_end_chk, width=15,
-                                      onvalue=1, offvalue=0)
-        self.chkbtn_end.pack(side=LEFT, padx=5)
+        self.cal_stt_chk = IntVar()
+        self.datechk_btn = Checkbutton(frame, text="發票日期檢查", variable=self.cal_stt_chk, width=15,
+                                      onvalue=1, offvalue=0, anchor="w")
+        self.datechk_btn.pack(side=LEFT)
+        lbl_stt = ttk.Label(frame, width=15, text="起始日期", anchor="e")
+        lbl_stt.pack(side=LEFT)
+        self.cal_stt = DateEntry(frame, width=20, background="darkblue",
+                                 date_pattern="yyyy/MM/dd",
+                                 foreground="white", borderwidth=2)
+        self.cal_stt.set_date(date.today())
+        self.cal_stt.pack(side=LEFT, padx=5)
+
+        lbl_end = ttk.Label(frame, width=15, text="結束時間", anchor="e")
+        lbl_end.pack(side=LEFT)
+        # self.cal_end_chk = IntVar()
+        # self.chkbtn_end = Checkbutton(frame, text="發票結束日期", variable=self.cal_end_chk, width=15,
+        #                               onvalue=1, offvalue=0)
+        # self.chkbtn_end.pack(side=LEFT, padx=5)
         self.cal_end = DateEntry(frame, width=20, background="darkblue",
                                  date_pattern="yyyy/MM/dd",
-                                 foreground="white", borderwidth=2, year=2020)
-        # self.cal_end.delete(0, "end")
-        self.cal_end.pack(side=LEFT, padx=10)
+                                 foreground="white", borderwidth=2)
+        self.cal_end.set_date(date.today())
+        self.cal_end.pack(side=LEFT, padx=5)
         frame.pack(side=TOP, padx='1c', pady=3)
 
     # This is the file selector handler
@@ -259,32 +260,31 @@ class OperationPanel(ttk.Frame):
         if gl_record_fn == "":
             self.print_log("尚未選擇總帳檔案!")
             return
-        self.print_log("執行發票、總帳匹配.....")
         self.print_log("發票檔案:" + inv_record_fn)
         self.print_log("總帳檔案:" + gl_record_fn)
-        # self.master.sel_pnl.chkbtn_stt.select()
-        # ToDo's : probably need to combine date check buttons into one
-        chkbtn_stt = self.master.sel_pnl.cal_stt_chk.get()
-        chkbtn_end = self.master.sel_pnl.cal_end_chk.get()
-        if chkbtn_stt == 1:
+        # self.master.sel_pnl.datechk_btn.select()
+        datechk_btn = self.master.sel_pnl.cal_stt_chk.get()
+        if datechk_btn == 1:
             cal_start_date = self.master.sel_pnl.cal_stt.get()
             cal_start_date_obj = datetime.strptime(cal_start_date, "%Y/%m/%d")
             print("Type of start date: ", type(cal_start_date_obj),
                   " Start date: ", cal_start_date_obj.strftime("%Y/%m/%d"))
             self.print_log("發票起始日 : " + cal_start_date)
-        else:
-            cal_start_date = ""
-            cal_start_date_obj = ""
-
-        if chkbtn_end == 1:
             cal_end_date = self.master.sel_pnl.cal_end.get()
             cal_end_date_obj = datetime.strptime(cal_end_date, "%Y/%m/%d")
             print("Type of end date: ", type(cal_end_date_obj),
                   " End date: ", cal_end_date_obj.strftime("%Y/%m/%d"))
             self.print_log("發票截止日 : " + cal_end_date)
+            if cal_start_date_obj >= cal_end_date_obj:
+                self.print_log("發票起訖日期指定錯誤，重新選取後在執行一次!")
+                return False
         else:
+            cal_start_date = ""
+            cal_start_date_obj = ""
             cal_end_date = ""
             cal_end_date_obj = ""
+
+        self.print_log("執行發票、總帳匹配.....")
         self.print_log("1. 進行總帳前處理")
         t1 = threading.Thread(target=xlsrw_oop.preproc_general_ledger_with_date,
                               name="Gl_preprocessor",
@@ -303,6 +303,7 @@ class OperationPanel(ttk.Frame):
                                     args=(t2,))
         tlogging.start()
         t1.start()
+        return True
 
     def pipeline_thread(self, t2):
         while not self.gl_prep_done_ev.isSet():

@@ -92,6 +92,7 @@ def preproc_general_ledger_with_date(gl_excel, ext_sales_excel, start_date, end_
         print("\tGeneral ledger selected: " + gl_excel)
         print("\tStart date: ", start_date)
         print("\tEnd date: ", end_date)
+
     wb_src= openpyxl.load_workbook(gl_excel, read_only=True)    # open source general ledger workbook
     ws_name = wb_src.sheetnames[0]
     ws_src = wb_src[ws_name]
@@ -100,10 +101,12 @@ def preproc_general_ledger_with_date(gl_excel, ext_sales_excel, start_date, end_
     ws_tgt.sheet_format.defaultColWidth = 12
     ws_tgt.column_dimensions["C"].width = 16
     ws_tgt.column_dimensions["O"].width = 28
+    # This date sanity check was performed earlier before entering this function
     if start_date != "" or end_date != "":
         check_invoice_date = True
     else:
         check_invoice_date = False
+
     header_row = True
     bar = progressbar.ProgressBar(maxval=100, widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     bar.start()
@@ -145,6 +148,7 @@ def preproc_general_ledger_with_date(gl_excel, ext_sales_excel, start_date, end_
     for r in range(1, ws_tgt.max_row+1):
         for c in range(1, ws_tgt.max_column+1):
             ws_tgt.cell(row=r, column=c).font = Font(name="Calibri")
+    ws_tgt.freeze_panes = "E2"
     wb_tgt.save(ext_sales_excel)
     wb_tgt.close()
     # Notify GUI that general ledger pre-process is done
@@ -168,6 +172,7 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel, GUI_caller)
     # check caller type
     if GUI_caller:
         print("match_invoice_and_external_sales is called from GUI")
+
     #
     # openpyxl to read external sales Excel file in order to read/modify/write .xlsx files
     # External sales Excel file was created in the stage 總帳前處理
@@ -221,6 +226,12 @@ def match_invoice_and_external_sales(invoice_excel, ext_sales_excel, GUI_caller)
         match_found = False
 
         # for jt in range(2, targetWs.max_row+1):
+        # for debug purpose
+        # ToDo: need to check if the ext_sales_ws is empty before continuing
+        if ext_sales_ws.max_row == 1:
+            ext_sales_wb.save(ext_sales_excel)
+            sys.exit()
+
         for jt in range(2, ext_sales_ws.max_row+1):
             if not utility.is_target_account_receivable(ext_sales_ws[jt]):
                 continue
